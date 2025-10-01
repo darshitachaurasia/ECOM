@@ -1,22 +1,22 @@
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 
 const authUser = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
-    const { token } = req.headers;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ success: false, message: "Unauthorized access, login again" });
+  }
 
-    if( !token ) {
-        return res.status(401).json({ success: false, message: "Unauthorized access Login again" });
-    }
+  const token = authHeader.split(" ")[1];
 
-    try {
-        const token_decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.body.userId = token_decoded.id;
-        next();
-    } catch (error) {
-        console.log(error);
-        return res.status(401).json({ success: false, message: error.message });
-    }
-
-}
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = { id: decoded.id }; // attach user info here
+    next();
+  } catch (error) {
+    console.log("JWT verification error:", error);
+    return res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
+};
 
 export default authUser;

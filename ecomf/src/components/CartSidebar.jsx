@@ -18,7 +18,46 @@ function CartSidebar({ show, onClose }) {
     country: "",
     phone: "",
   });
-
+  const placeOrder = async () => {
+    if (Object.values(address).some((v) => !v.trim())) {
+      alert("Please fill in all address fields to complete your order.");
+      return;
+    }
+  
+    setIsPlacingOrder(true);
+  
+    try {
+      const res = await fetch("http://localhost:4000/api/order/place", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`, // JWT token
+        },
+        body: JSON.stringify({
+          cartItems: cart,                 // ✅ will be saved in `items`
+          address,                         // ✅ saved in `address`
+          totalAmount: getTotalPrice(),    // ✅ saved in `amount`
+          paymentMethod: "stripe",         // ✅ saved in `paymentMethod`
+        }),
+      });
+  
+      const data = await res.json();
+  
+      if (data.success) {
+        setCheckoutStep("success");
+        clearCart();
+      } else {
+        alert(data.message || "Order was not saved.");
+      }
+    } catch (err) {
+      console.error("Order API error:", err);
+      alert("Error placing order.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+  
+  
   // Handle address form input changes
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
@@ -26,22 +65,7 @@ function CartSidebar({ show, onClose }) {
   };
 
   // Fake place order without API
-  const placeOrder = () => {
-    if (Object.values(address).some((v) => !v.trim())) {
-      alert("Please fill in all address fields to complete your order.");
-      return;
-    }
-
-    setIsPlacingOrder(true);
-    console.log("Order placed with address:", address);
-
-    // Simulate payment success after 1.5s
-    setTimeout(() => {
-      setCheckoutStep("success");
-      clearCart(); // Clear the cart on successful order
-      setIsPlacingOrder(false);
-    }, 1500);
-  };
+  
 
   // Reset checkout step when the modal is closed
   useEffect(() => {
